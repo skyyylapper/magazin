@@ -1,7 +1,8 @@
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command
-from database import async_session_maker, User
+from database import async_session_maker, get_user, update_user_balance
+from models import User
 from sqlalchemy import select
 from config import ADMIN_IDS
 
@@ -34,11 +35,7 @@ async def edit_balance_start(message: Message):
     try:
         user_id = int(user_id_str)
         amount = float(amount_str)
-        async with async_session_maker() as session:
-            user = await session.execute(select(User).where(User.user_id == user_id))
-            user = user.scalar_one()
-            user.balance = amount
-            await session.commit()
+        await update_user_balance(user_id, amount)
         await message.answer(f"Баланс пользователя {user_id} изменён на {amount} USDT")
     except Exception as e:
         await message.answer(f"Ошибка: {e}")
