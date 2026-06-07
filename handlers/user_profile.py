@@ -18,6 +18,6 @@ async def show_profile(callback: CallbackQuery, lang: str = 'ru'):
         text = f"<b>{get_text('profile_title', lang)}</b>\n\n"
         text += f"{get_text('balance', lang)}: {user.balance:.2f} USDT\n"
         text += f"{get_text('purchases', lang)}: {orders_count}\n"
-        # Реферальная ссылка удалена
+        # реферальная ссылка удалена
         await callback.message.edit_text(text, reply_markup=main_menu_keyboard(lang))
     await callback.answer()
