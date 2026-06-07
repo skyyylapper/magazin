@@ -20,7 +20,7 @@ async def cmd_start(message: Message, lang: str = 'ru'):
     user = await get_user(user_id)
     if not user:
         partner_id = None
-        # реферальный код может быть только партнёрским (partner_123)
+        # только партнёрская ссылка (partner_telegram_id)
         if ref_code and ref_code.startswith('partner_'):
             try:
                 partner_telegram_id = int(ref_code.split('_')[1])
@@ -37,7 +37,7 @@ async def cmd_start(message: Message, lang: str = 'ru'):
             first_name=message.from_user.first_name,
             last_name=message.from_user.last_name,
             language=lang,
-            referrer_id=None,  # обычная рефералка отключена
+            referrer_id=None,  # рефералка отключена
             partner_id=partner_id
         )
     else:
