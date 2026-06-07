@@ -1,4 +1,5 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from config import ADMIN_USERNAME
 
 def admin_main_keyboard(lang='ru'):
     return InlineKeyboardMarkup(inline_keyboard=[
@@ -7,7 +8,7 @@ def admin_main_keyboard(lang='ru'):
         [InlineKeyboardButton(text="🤝 Партнёры", callback_data="admin_partners"),
          InlineKeyboardButton(text="💰 Ручные пополнения", callback_data="admin_manual_topups")],
         [InlineKeyboardButton(text="📤 Заявки на вывод", callback_data="admin_withdraw_requests"),
-         InlineKeyboardButton(text="🆘 Поддержка", url="https://t.me/ВАШ_ЮЗЕРНЕЙМ")]
+         InlineKeyboardButton(text="🆘 Поддержка", url=f"https://t.me/{ADMIN_USERNAME}")]
     ])
 
 def partner_main_keyboard(lang='ru'):
@@ -16,5 +17,5 @@ def partner_main_keyboard(lang='ru'):
          InlineKeyboardButton(text="🔗 Моя ссылка", callback_data="partner_link")],
         [InlineKeyboardButton(text="📊 Статистика", callback_data="partner_stats"),
          InlineKeyboardButton(text="💸 Вывести", callback_data="partner_withdraw")],
-        [InlineKeyboardButton(text="🆘 Поддержка", url="https://t.me/ВАШ_ЮЗЕРНЕЙМ")]
+        [InlineKeyboardButton(text="🆘 Поддержка", url=f"https://t.me/{ADMIN_USERNAME}")]
     ])
