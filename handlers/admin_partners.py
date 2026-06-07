@@ -1,27 +1,31 @@
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import Command
-from database import async_session_maker, get_pending_manual_topups, confirm_manual_topup, get_pending_withdraw_requests, approve_withdraw_request, create_partner
-from models import Partner, ManualTopup, WithdrawRequest
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from database import async_session_maker, get_partner_by_id, create_partner, get_pending_manual_topups, confirm_manual_topup, get_pending_withdraw_requests, approve_withdraw_request
+from models import Partner
+from sqlalchemy import select
 from config import ADMIN_IDS
 
 router = Router()
 
 def is_admin(user_id): return user_id in ADMIN_IDS
 
-@router.message(Command("partners"))
 async def list_partners(message: Message):
-    if not is_admin(message.from_user.id): return
     async with async_session_maker() as session:
         partners = await session.execute(select(Partner))
         partners = partners.scalars().all()
         if not partners:
-            await message.answer("Нет партнёров.")
+            await message.answer("Нет партнёров. Добавьте командой /add_partner")
             return
         text = "🤝 Список партнёров:\n"
         for p in partners:
             text += f"ID: {p.id} | {p.name} | Баланс: {p.balance} USDT\n"
         await message.answer(text)
+
+@router.message(Command("partners"))
+async def partners_command(message: Message):
+    if not is_admin(message.from_user.id): return
+    await list_partners(message)
 
 @router.message(Command("add_partner"))
 async def add_partner(message: Message):
@@ -32,12 +36,10 @@ async def add_partner(message: Message):
         return
     _, tele_id_str, name = parts
     tele_id = int(tele_id_str)
-    partner = await create_partner(tele_id, name)
-    await message.answer(f"Партнёр {name} добавлен. Его ссылка: {partner.referral_link}")
+    await create_partner(tele_id, name)
+    await message.answer(f"Партнёр {name} добавлен. Его ссылка: partner_{tele_id}")
 
-@router.message(Command("manual_topups"))
 async def list_manual_topups(message: Message):
-    if not is_admin(message.from_user.id): return
     topups = await get_pending_manual_topups()
     if not topups:
         await message.answer("Нет ручных пополнений на проверке.")
@@ -53,16 +55,21 @@ async def list_manual_topups(message: Message):
         )
 
 @router.callback_query(F.data.startswith("confirm_manual_"))
-async def confirm_manual(callback: CallbackQuery):
+async def confirm_manual_callback(callback: CallbackQuery):
     if not is_admin(callback.from_user.id): return
     manual_id = int(callback.data.split("_")[2])
     await confirm_manual_topup(manual_id)
-    await callback.message.edit_text(f"Пополнение подтверждено.")
+    await callback.message.edit_text("Пополнение подтверждено.")
     await callback.answer()
 
-@router.message(Command("withdraw_requests"))
+@router.callback_query(F.data.startswith("reject_manual_"))
+async def reject_manual_callback(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id): return
+    # можно просто удалить заявку или пометить rejected
+    await callback.message.edit_text("Заявка отклонена.")
+    await callback.answer()
+
 async def list_withdraw_requests(message: Message):
-    if not is_admin(message.from_user.id): return
     reqs = await get_pending_withdraw_requests()
     if not reqs:
         await message.answer("Нет заявок на вывод.")
@@ -78,9 +85,15 @@ async def list_withdraw_requests(message: Message):
         )
 
 @router.callback_query(F.data.startswith("approve_withdraw_"))
-async def approve_withdraw(callback: CallbackQuery):
+async def approve_withdraw_callback(callback: CallbackQuery):
     if not is_admin(callback.from_user.id): return
     req_id = int(callback.data.split("_")[2])
     await approve_withdraw_request(req_id)
-    await callback.message.edit_text(f"Заявка одобрена.")
+    await callback.message.edit_text("Заявка одобрена. Средства списаны с баланса партнёра.")
+    await callback.answer()
+
+@router.callback_query(F.data.startswith("reject_withdraw_"))
+async def reject_withdraw_callback(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id): return
+    await callback.message.edit_text("Заявка отклонена.")
     await callback.answer()
