@@ -1,9 +1,9 @@
 from aiogram import Router, F
+from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.context import FSMContext
-from aiogram.filters import Command
 from states.admin_states import AddProductState, EditProductState
-from database import get_all_products, get_product, create_product, update_product, delete_product
+from database import async_session_maker, get_all_products, get_product, delete_product, update_product, create_product
 from config import ADMIN_IDS
 from utils.pagination import paginate_keyboard
 
@@ -11,32 +11,60 @@ router = Router()
 
 def is_admin(user_id): return user_id in ADMIN_IDS
 
-@router.message(Command("products"))
 async def list_products_for_admin(message: Message):
+    async with async_session_maker() as session:
+        products = await get_all_products(only_available=False)
+        if not products:
+            await message.answer("Нет товаров. Добавьте командой /add_product")
+            return
+        kb = paginate_keyboard(products, page=0, callback_prefix="admin_product_", items_per_page=5)
+        await message.answer("📦 Товары:", reply_markup=kb)
+
+@router.message(Command("products"))
+async def products_command(message: Message):
     if not is_admin(message.from_user.id): return
-    products = await get_all_products(only_available=False)
-    kb = paginate_keyboard(products, page=0, callback_prefix="admin_product_", items_per_page=5)
-    await message.answer("📦 Товары:", reply_markup=kb)
+    await list_products_for_admin(message)
 
 @router.callback_query(F.data.startswith("admin_product_"))
 async def admin_product_detail(callback: CallbackQuery):
     if not is_admin(callback.from_user.id): return
-    product_id = int(callback.data.split("_")[2])
-    product = await get_product(product_id)
-    if product:
-        text = f"ID: {product.id}\nНазвание: {product.name}\nЦена: {product.price} USDT\nДоступен: {'Да' if product.is_available else 'Нет'}\n\n{product.description}"
-        kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="✏️ Редактировать", callback_data=f"edit_product_{product.id}"),
-             InlineKeyboardButton(text="🗑 Удалить", callback_data=f"delete_product_{product.id}")],
-            [InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_products")]
-        ])
-        await callback.message.edit_text(text, reply_markup=kb)
+    parts = callback.data.split("_")
+    if parts[2] == "page":
+        # обработка пагинации
+        page = int(parts[3])
+        async with async_session_maker() as session:
+            products = await get_all_products(only_available=False)
+            kb = paginate_keyboard(products, page=page, callback_prefix="admin_product_", items_per_page=5)
+            await callback.message.edit_reply_markup(reply_markup=kb)
+        await callback.answer()
+        return
+    product_id = int(parts[2])
+    async with async_session_maker() as session:
+        product = await get_product(product_id)
+        if product:
+            text = f"ID: {product.id}\nНазвание: {product.name}\nЦена: {product.price} USDT\nДоступен: {'Да' if product.is_available else 'Нет'}\n\n{product.description}"
+            kb = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="✏️ Редактировать", callback_data=f"edit_product_{product.id}"),
+                 InlineKeyboardButton(text="🗑 Удалить", callback_data=f"delete_product_{product.id}")],
+                [InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_products")]
+            ])
+            await callback.message.edit_text(text, reply_markup=kb)
     await callback.answer()
 
 @router.callback_query(F.data == "back_to_products")
 async def back_to_products(callback: CallbackQuery):
     if not is_admin(callback.from_user.id): return
     await list_products_for_admin(callback.message)
+    await callback.answer()
+
+@router.callback_query(F.data.startswith("delete_product_"))
+async def delete_product_callback(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id): return
+    product_id = int(callback.data.split("_")[2])
+    await delete_product(product_id)
+    await callback.message.answer("Товар удалён.")
+    await list_products_for_admin(callback.message)
+    await callback.answer()
 
 @router.message(Command("add_product"))
 async def add_product_start(message: Message, state: FSMContext):
@@ -94,10 +122,3 @@ async def add_product_availability(message: Message, state: FSMContext):
     )
     await message.answer("✅ Товар добавлен!")
     await state.clear()
-    
-@router.callback_query(F.data == "back_to_products")
-async def back_to_products(callback: CallbackQuery):
-    if not is_admin(callback.from_user.id):
-        return
-    await list_products_for_admin(callback.message)
-    await callback.answer()
