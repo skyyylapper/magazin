@@ -4,7 +4,9 @@ from aiogram.types import Message, CallbackQuery
 from database import get_partner_by_telegram_id
 from config import ADMIN_IDS
 from keyboards.admin_menu import admin_main_keyboard, partner_main_keyboard
+import logging
 
+logger = logging.getLogger(__name__)
 router = Router()
 
 def is_admin(user_id: int) -> bool:
@@ -24,6 +26,7 @@ async def admin_start(message: Message):
 
 @router.callback_query(F.data == "admin_products")
 async def admin_products_callback(callback: CallbackQuery):
+    logger.info(f"Нажата кнопка admin_products от {callback.from_user.id}")
     if not is_admin(callback.from_user.id):
         await callback.answer("Нет доступа", show_alert=True)
         return
@@ -33,6 +36,7 @@ async def admin_products_callback(callback: CallbackQuery):
 
 @router.callback_query(F.data == "admin_users")
 async def admin_users_callback(callback: CallbackQuery):
+    logger.info(f"Нажата кнопка admin_users от {callback.from_user.id}")
     if not is_admin(callback.from_user.id):
         await callback.answer("Нет доступа", show_alert=True)
         return
@@ -42,6 +46,7 @@ async def admin_users_callback(callback: CallbackQuery):
 
 @router.callback_query(F.data == "admin_partners")
 async def admin_partners_callback(callback: CallbackQuery):
+    logger.info(f"Нажата кнопка admin_partners от {callback.from_user.id}")
     if not is_admin(callback.from_user.id):
         await callback.answer("Нет доступа", show_alert=True)
         return
@@ -51,6 +56,7 @@ async def admin_partners_callback(callback: CallbackQuery):
 
 @router.callback_query(F.data == "admin_manual_topups")
 async def admin_manual_topups_callback(callback: CallbackQuery):
+    logger.info(f"Нажата кнопка admin_manual_topups от {callback.from_user.id}")
     if not is_admin(callback.from_user.id):
         await callback.answer("Нет доступа", show_alert=True)
         return
@@ -60,6 +66,7 @@ async def admin_manual_topups_callback(callback: CallbackQuery):
 
 @router.callback_query(F.data == "admin_withdraw_requests")
 async def admin_withdraw_requests_callback(callback: CallbackQuery):
+    logger.info(f"Нажата кнопка admin_withdraw_requests от {callback.from_user.id}")
     if not is_admin(callback.from_user.id):
         await callback.answer("Нет доступа", show_alert=True)
         return
