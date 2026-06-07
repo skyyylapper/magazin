@@ -3,8 +3,7 @@ from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKe
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import Command
 from states.admin_states import AddProductState, EditProductState
-from database import async_session_maker, Product
-from sqlalchemy import select
+from database import get_all_products, get_product, create_product, update_product, delete_product
 from config import ADMIN_IDS
 from utils.pagination import paginate_keyboard
 
@@ -15,26 +14,23 @@ def is_admin(user_id): return user_id in ADMIN_IDS
 @router.message(Command("products"))
 async def list_products_for_admin(message: Message):
     if not is_admin(message.from_user.id): return
-    async with async_session_maker() as session:
-        products = await session.execute(select(Product))
-        products = products.scalars().all()
-        kb = paginate_keyboard(products, page=0, callback_prefix="admin_product_", items_per_page=5)
-        await message.answer("📦 Товары:", reply_markup=kb)
+    products = await get_all_products(only_available=False)
+    kb = paginate_keyboard(products, page=0, callback_prefix="admin_product_", items_per_page=5)
+    await message.answer("📦 Товары:", reply_markup=kb)
 
 @router.callback_query(F.data.startswith("admin_product_"))
 async def admin_product_detail(callback: CallbackQuery):
     if not is_admin(callback.from_user.id): return
     product_id = int(callback.data.split("_")[2])
-    async with async_session_maker() as session:
-        product = await session.get(Product, product_id)
-        if product:
-            text = f"ID: {product.id}\nНазвание: {product.name}\nЦена: {product.price} USDT\nДоступен: {'Да' if product.is_available else 'Нет'}\n\n{product.description}"
-            kb = InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="✏️ Редактировать", callback_data=f"edit_product_{product.id}"),
-                 InlineKeyboardButton(text="🗑 Удалить", callback_data=f"delete_product_{product.id}")],
-                [InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_products")]
-            ])
-            await callback.message.edit_text(text, reply_markup=kb)
+    product = await get_product(product_id)
+    if product:
+        text = f"ID: {product.id}\nНазвание: {product.name}\nЦена: {product.price} USDT\nДоступен: {'Да' if product.is_available else 'Нет'}\n\n{product.description}"
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="✏️ Редактировать", callback_data=f"edit_product_{product.id}"),
+             InlineKeyboardButton(text="🗑 Удалить", callback_data=f"delete_product_{product.id}")],
+            [InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_products")]
+        ])
+        await callback.message.edit_text(text, reply_markup=kb)
     await callback.answer()
 
 @router.callback_query(F.data == "back_to_products")
@@ -89,15 +85,12 @@ async def add_product_photo(message: Message, state: FSMContext):
 async def add_product_availability(message: Message, state: FSMContext):
     data = await state.get_data()
     is_available = message.text.lower() in ['да', 'yes', 'true', '1']
-    async with async_session_maker() as session:
-        product = Product(
-            name=data['name'],
-            description=data['description'],
-            price=data['price'],
-            photo_file_id=data['photo_file_id'],
-            is_available=is_available
-        )
-        session.add(product)
-        await session.commit()
+    await create_product(
+        name=data['name'],
+        description=data['description'],
+        price=data['price'],
+        photo_file_id=data['photo_file_id'],
+        is_available=is_available
+    )
     await message.answer("✅ Товар добавлен!")
     await state.clear()
