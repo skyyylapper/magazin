@@ -39,3 +39,18 @@ async def edit_balance_start(message: Message):
         await message.answer(f"Баланс пользователя {user_id} изменён на {amount} USDT")
     except Exception as e:
         await message.answer(f"Ошибка: {e}")
+
+async def list_users(message: Message):
+    from database import async_session_maker
+    from models import User
+    from sqlalchemy import select
+    async with async_session_maker() as session:
+        users = await session.execute(select(User))
+        users = users.scalars().all()
+        if not users:
+            await message.answer("Нет пользователей.")
+            return
+        text = "👥 Список пользователей:\n"
+        for u in users[:20]:
+            text += f"ID: {u.user_id} | {u.first_name} | Баланс: {u.balance} USDT\n"
+        await message.answer(text)
