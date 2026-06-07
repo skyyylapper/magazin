@@ -1,4 +1,5 @@
-# Словари переводов (RU и EN)
+# translations.py
+
 _ = {
     'ru': {
         'welcome': "Добро пожаловать в магазин!",
@@ -7,8 +8,32 @@ _ = {
         'support': "🆘 Поддержка",
         'cart': "🛒 Корзина",
         'profile': "👤 Профиль",
-        'referral': "👥 Реферальная система",
-        # ... и так далее
+        'profile_title': "Профиль",
+        'purchases': "Покупок",
+        'catalog_title': "Каталог товаров",
+        'no_products': "Товаров пока нет.",
+        'add_to_cart': "Добавить в корзину",
+        'back_to_catalog': "◀️ Назад",
+        'cart_title': "🛒 Ваша корзина",
+        'cart_empty': "Корзина пуста.",
+        'checkout': "✅ Оформить заказ",
+        'clear_cart': "🗑 Очистить корзину",
+        'continue_shopping': "🛍 Продолжить покупки",
+        'added_to_cart': "Товар добавлен в корзину",
+        'cart_cleared': "Корзина очищена",
+        'insufficient_balance': "❌ Недостаточно средств на балансе.",
+        'order_success': "✅ Заказ оформлен! Товар будет выдан в ближайшее время.",
+        'topup_choose_method': "Выберите способ пополнения:",
+        'enter_topup_amount': "Введите сумму в USDT:",
+        'manual_topup_instruction': "Отправьте USDT (TRC20) на адрес:",
+        'manual_topup_after_send': "После отправки нажмите «Я отправил» и укажите сумму и хэш транзакции.",
+        'enter_amount_usdt': "Введите сумму в USDT:",
+        'enter_txid': "Введите хэш транзакции (TXID):",
+        'invalid_amount': "❌ Некорректная сумма. Введите число больше 0.",
+        'manual_topup_created': "✅ Заявка на пополнение {amount} USDT создана.\nОжидайте проверки администратором (обычно до 24 часов).",
+        'support_contact': "По вопросам: @{username}",
+        'antispam_blocked': "⛔ Вы создали слишком много заявок. Попробуйте позже.",
+        'product_not_found': "Товар не найден.",
     },
     'en': {
         'welcome': "Welcome to the shop!",
@@ -17,35 +42,33 @@ _ = {
         'support': "🆘 Support",
         'cart': "🛒 Cart",
         'profile': "👤 Profile",
-        'referral': "👥 Referral system",
+        'profile_title': "Profile",
+        'purchases': "Purchases",
+        'catalog_title': "Product catalog",
+        'no_products': "No products yet.",
+        'add_to_cart': "Add to cart",
+        'back_to_catalog': "◀️ Back",
+        'cart_title': "🛒 Your cart",
+        'cart_empty': "Cart is empty.",
+        'checkout': "✅ Checkout",
+        'clear_cart': "🗑 Clear cart",
+        'continue_shopping': "🛍 Continue shopping",
+        'added_to_cart': "Product added to cart",
+        'cart_cleared': "Cart cleared",
+        'insufficient_balance': "❌ Insufficient balance.",
+        'order_success': "✅ Order placed! The product will be delivered soon.",
+        'topup_choose_method': "Choose top-up method:",
+        'enter_topup_amount': "Enter amount in USDT:",
+        'manual_topup_instruction': "Send USDT (TRC20) to address:",
+        'manual_topup_after_send': "After sending, press 'I sent' and enter amount and transaction hash.",
+        'enter_amount_usdt': "Enter amount in USDT:",
+        'enter_txid': "Enter transaction hash (TXID):",
+        'invalid_amount': "❌ Invalid amount. Enter a number greater than 0.",
+        'manual_topup_created': "✅ Top-up request for {amount} USDT created.\nWait for admin check (usually up to 24 hours).",
+        'support_contact': "Contact: @{username}",
+        'antispam_blocked': "⛔ You have created too many requests. Try later.",
+        'product_not_found': "Product not found.",
     }
-}
-
-'ru': {
-    ...
-    'topup_choose_method': "Выберите способ пополнения:",
-    'enter_topup_amount': "Введите сумму в USDT:",
-    'manual_topup_instruction': "Отправьте USDT (TRC20) на адрес:",
-    'manual_topup_after_send': "После отправки нажмите «Я отправил» и укажите сумму и хэш транзакции.",
-    'enter_amount_usdt': "Введите сумму в USDT:",
-    'enter_txid': "Введите хэш транзакции (TXID):",
-    'invalid_amount': "❌ Некорректная сумма. Введите число больше 0.",
-    'manual_topup_created': "✅ Заявка на пополнение {amount} USDT создана.\nОжидайте проверки.",
-    'support_contact': "По вопросам: @{username}",
-    'antispam_blocked': "⛔ Вы создали слишком много заявок. Попробуйте позже.",
-},
-'en': {
-    ...
-    'topup_choose_method': "Choose top-up method:",
-    'enter_topup_amount': "Enter amount in USDT:",
-    'manual_topup_instruction': "Send USDT (TRC20) to address:",
-    'manual_topup_after_send': "After sending, press 'I sent' and enter amount and transaction hash.",
-    'enter_amount_usdt': "Enter amount in USDT:",
-    'enter_txid': "Enter transaction hash (TXID):",
-    'invalid_amount': "❌ Invalid amount. Enter a number greater than 0.",
-    'manual_topup_created': "✅ Top-up request for {amount} USDT created.\nWait for admin check.",
-    'support_contact': "Contact: @{username}",
-    'antispam_blocked': "⛔ You have created too many requests. Try later.",
 }
 
 def get_text(key: str, lang: str = 'ru') -> str:
