@@ -94,3 +94,10 @@ async def add_product_availability(message: Message, state: FSMContext):
     )
     await message.answer("✅ Товар добавлен!")
     await state.clear()
+    
+@router.callback_query(F.data == "back_to_products")
+async def back_to_products(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id):
+        return
+    await list_products_for_admin(callback.message)
+    await callback.answer()
