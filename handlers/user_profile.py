@@ -1,0 +1,26 @@
+from aiogram import Router, F
+from aiogram.types import CallbackQuery, Message
+from aiogram.filters import Command
+from database import async_session_maker, User, Order, Product
+from sqlalchemy import select, func
+from translations import get_text
+from keyboards.main_menu import main_menu_keyboard
+import config
+
+router = Router()
+
+@router.callback_query(F.data == "profile")
+async def show_profile(callback: CallbackQuery, lang: str = 'ru'):
+    user_id = callback.from_user.id
+    async with async_session_maker() as session:
+        user = await session.execute(select(User).where(User.user_id == user_id))
+        user = user.scalar_one()
+        # кол-во покупок
+        orders_count = await session.execute(select(func.count(Order.id)).where(Order.user_id == user_id, Order.status == 'paid'))
+        orders_count = orders_count.scalar()
+        text = f"<b>{get_text('profile_title', lang)}</b>\n\n"
+        text += f"{get_text('balance', lang)}: {user.balance:.2f} USDT\n"
+        text += f"{get_text('purchases', lang)}: {orders_count}\n"
+        text += f"{get_text('referral_link', lang)}: https://t.me/{config.MAIN_BOT_USERNAME}?start={user.user_id}\n"
+        await callback.message.edit_text(text, reply_markup=main_menu_keyboard(lang))
+    await callback.answer()
