@@ -20,30 +20,24 @@ async def cmd_start(message: Message, lang: str = 'ru'):
     user = await get_user(user_id)
     if not user:
         partner_id = None
-        referrer_id = None
-        if ref_code:
-            if ref_code.startswith('partner_'):
-                try:
-                    partner_telegram_id = int(ref_code.split('_')[1])
-                    async with async_session_maker() as session:
-                        partner = await session.execute(select(Partner).where(Partner.telegram_id == partner_telegram_id))
-                        partner = partner.scalar_one_or_none()
-                        if partner:
-                            partner_id = partner.id
-                except:
-                    pass
-            else:
-                try:
-                    referrer_id = int(ref_code)
-                except:
-                    pass
+        # реферальный код может быть только партнёрским (partner_123)
+        if ref_code and ref_code.startswith('partner_'):
+            try:
+                partner_telegram_id = int(ref_code.split('_')[1])
+                async with async_session_maker() as session:
+                    partner = await session.execute(select(Partner).where(Partner.telegram_id == partner_telegram_id))
+                    partner = partner.scalar_one_or_none()
+                    if partner:
+                        partner_id = partner.id
+            except:
+                pass
         user = await create_user(
             user_id=user_id,
             username=message.from_user.username,
             first_name=message.from_user.first_name,
             last_name=message.from_user.last_name,
             language=lang,
-            referrer_id=referrer_id,
+            referrer_id=None,  # обычная рефералка отключена
             partner_id=partner_id
         )
     else:
