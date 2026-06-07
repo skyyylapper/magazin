@@ -1,16 +1,11 @@
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import Command
-from database import async_session_maker, Partner, WithdrawRequest, PartnerEarning
+from aiogram.types import Message
+from database import async_session_maker, get_partner_by_telegram_id, create_withdraw_request
+from models import Partner, WithdrawRequest, PartnerEarning
 from sqlalchemy import select
-from translations import get_text
 
 router = Router()
-
-async def get_partner_by_telegram_id(telegram_id: int):
-    async with async_session_maker() as session:
-        result = await session.execute(select(Partner).where(Partner.telegram_id == telegram_id))
-        return result.scalar_one_or_none()
 
 @router.message(Command("balance"))
 async def partner_balance(message: Message):
@@ -38,7 +33,6 @@ async def partner_stats(message: Message):
         total_earned = sum(e.amount for e in earnings)
         count = len(earnings)
         text = f"📊 Ваша статистика:\nВсего начислено: {total_earned} USDT\nКоличество пополнений: {count}\n"
-        # последние 5 начислений
         if earnings:
             text += "\nПоследние начисления:\n"
             for e in earnings[-5:]:
@@ -60,15 +54,7 @@ async def partner_withdraw(message: Message):
         if amount <= 0 or amount > partner.balance:
             await message.answer("Некорректная сумма или превышает баланс.")
             return
-        async with async_session_maker() as session:
-            req = WithdrawRequest(
-                partner_id=partner.id,
-                amount=amount,
-                wallet_address=wallet,
-                status='pending'
-            )
-            session.add(req)
-            await session.commit()
+        await create_withdraw_request(partner.id, amount, wallet)
         await message.answer(f"✅ Заявка на вывод {amount} USDT создана. Ожидайте подтверждения администратора.")
     except:
         await message.answer("Ошибка. Используйте: /withdraw 100 USDT TRC20 адрес")
