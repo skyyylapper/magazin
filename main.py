@@ -4,7 +4,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from config import MAIN_BOT_TOKEN, ADMIN_BOT_TOKEN
 from database import init_db
-from handlers import user_start, user_catalog, user_cart, user_profile, user_referral, user_topup
+from handlers import user_start, user_catalog, user_cart, user_profile, user_topup
 from handlers import admin_commands, admin_products, admin_users, admin_partners, partner_commands
 from middlewares import LanguageMiddleware
 from currency import start_currency_updater
@@ -23,7 +23,6 @@ async def main_bot():
     dp.include_router(user_catalog.router)
     dp.include_router(user_cart.router)
     dp.include_router(user_profile.router)
-    dp.include_router(user_referral.router)
     dp.include_router(user_topup.router)
 
     await bot.delete_webhook(drop_pending_updates=True)
