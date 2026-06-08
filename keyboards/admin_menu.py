@@ -1,5 +1,5 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from config import ADMIN_USERNAME
+from config import ADMIN_USERNAME, MAIN_BOT_USERNAME
 
 def admin_main_keyboard(lang='ru'):
     return InlineKeyboardMarkup(inline_keyboard=[
