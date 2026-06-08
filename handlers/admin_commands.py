@@ -14,28 +14,14 @@ def is_admin(user_id: int) -> bool:
 async def admin_start(message: Message):
     user_id = message.from_user.id
     if is_admin(user_id):
-        await message.answer("👑 Добро пожаловать в админ-панель!", reply_markup=admin_main_keyboard('ru'), parse_mode=None)
+        await message.answer("👑 Добро пожаловать в админ-панель!", reply_markup=admin_main_keyboard('ru'))
     else:
         partner = await get_partner_by_telegram_id(user_id)
         if partner:
-            await message.answer(f"🤝 Здравствуйте, {partner.name}! Вы вошли как партнёр.", reply_markup=partner_main_keyboard('ru'), parse_mode=None)
+            await message.answer(f"🤝 Здравствуйте, {partner.name}! Вы вошли как партнёр.", reply_markup=partner_main_keyboard('ru'))
         else:
-            await message.answer("У вас нет доступа к этому боту.", parse_mode=None)
+            await message.answer("У вас нет доступа к этому боту.")
 
-@router.message(Command("help"))
-async def admin_help(message: Message):
-    user_id = message.from_user.id
-    if is_admin(user_id):
-        text = "Доступные команды:\n/start - главное меню\n/products - управление товарами\n/users - список пользователей\n/partners - управление партнёрами\n/manual_topups - ручные пополнения\n/withdraw_requests - заявки на вывод"
-    else:
-        partner = await get_partner_by_telegram_id(user_id)
-        if partner:
-            text = "Ваши возможности:\n/balance - партнёрский баланс\n/referral_link - ваша ссылка\n/stats - статистика\n/withdraw - запрос вывода"
-        else:
-            text = "Доступ запрещён."
-    await message.answer(text, parse_mode=None)
-
-# Обработчики callback-кнопок (без parse_mode)
 @router.callback_query(F.data == "admin_products")
 async def admin_products_callback(callback: CallbackQuery):
     if not is_admin(callback.from_user.id):
