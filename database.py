@@ -137,26 +137,38 @@ async def get_pending_manual_topups() -> List[ManualTopup]:
         return result.scalars().all()
 
 async def confirm_manual_topup(manual_id: int):
+    from models import User, Partner, PartnerEarning
+    from datetime import datetime
+    import logging
     async with async_session_maker() as session:
-        manual = await session.get(ManualTopup, manual_id)
-        if manual and manual.status == 'pending':
+        async with session.begin():
+            manual = await session.get(ManualTopup, manual_id)
+            if not manual:
+                logging.error(f"ManualTopup {manual_id} not found")
+                return
+            if manual.status != 'pending':
+                logging.warning(f"ManualTopup {manual_id} already {manual.status}")
+                return
             manual.status = 'confirmed'
-            # начисление баланса пользователю
-            user = await get_user(manual.user_id)
+            manual.confirmed_at = datetime.utcnow()
+            
+            user = await session.get(User, manual.user_id)
             if user:
                 user.balance += manual.amount
-                # бонус партнёру или рефералу
                 if user.partner_id:
-                    partner = await get_partner_by_id(user.partner_id)
+                    partner = await session.get(Partner, user.partner_id)
                     if partner:
                         bonus = manual.amount * 0.5
                         partner.balance += bonus
-                elif user.referrer_id:
-                    referrer = await get_user(user.referrer_id)
-                    if referrer:
-                        referrer.balance += manual.amount * 0.5
+                        earning = PartnerEarning(
+                            partner_id=partner.id,
+                            user_id=user.user_id,
+                            amount=bonus,
+                            topup_amount=manual.amount
+                        )
+                        session.add(earning)
+                logging.info(f"User {user.user_id} balance increased by {manual.amount}")
             await session.commit()
-
 # ---- WithdrawRequest CRUD ----
 async def create_withdraw_request(partner_id: int, amount: float, wallet_address: str) -> WithdrawRequest:
     async with async_session_maker() as session:
