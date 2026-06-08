@@ -10,6 +10,18 @@ from middlewares import LanguageMiddleware
 from currency import start_currency_updater
 from send_integration import start_invoice_checker
 from loguru import logger
+import sys
+import logging
+
+# Логирование в файл внутри /app/data (эта папка сохраняется)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('/app/data/bot_errors.log', encoding='utf-8'),
+        logging.StreamHandler(sys.stdout)  # чтобы видеть и в терминале
+    ]
+)
 
 logger.add("logs/bot.log", rotation="1 day", retention="7 days")
 
