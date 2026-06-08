@@ -1,11 +1,10 @@
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
-from database import async_session_maker, confirm_manual_topup
-from models import Partner, ManualTopup
+from database import async_session_maker, get_pending_manual_topups, get_pending_withdraw_requests, confirm_manual_topup, approve_withdraw_request
+from models import Partner
 from sqlalchemy import select
 from config import ADMIN_IDS
-import logging
 
 router = Router()
 
@@ -19,7 +18,7 @@ async def add_partner(message: Message):
         return
     parts = message.text.split()
     if len(parts) != 3:
-        await message.answer("Использование: /add_partner telegram_id имя")
+        await message.answer("Использование: /add_partner <telegram_id> <имя>")
         return
     _, tele_id_str, name = parts
     try:
@@ -56,41 +55,34 @@ async def list_partners(message: Message):
 async def list_manual_topups(message: Message):
     if not is_admin(message.from_user.id):
         return
-    async with async_session_maker() as session:
-        topups = await session.execute(select(ManualTopup).where(ManualTopup.status == 'pending'))
-        topups = topups.scalars().all()
-        if not topups:
-            await message.answer("Нет ручных пополнений на проверке.")
-            return
-        for t in topups:
-            kb = InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="✅ Подтвердить", callback_data=f"confirm_manual_{t.id}"),
-                 InlineKeyboardButton(text="❌ Отклонить", callback_data=f"reject_manual_{t.id}")]
-            ])
-            await message.answer(
-                f"💰 Заявка #{t.id}\nПользователь: {t.user_id}\nСумма: {t.amount} USDT\nTXID: {t.transaction_hash}",
-                reply_markup=kb
-            )
+    topups = await get_pending_manual_topups()
+    if not topups:
+        await message.answer("Нет ручных пополнений на проверке.")
+        return
+    for t in topups:
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="✅ Подтвердить", callback_data=f"confirm_manual_{t.id}"),
+             InlineKeyboardButton(text="❌ Отклонить", callback_data=f"reject_manual_{t.id}")]
+        ])
+        await message.answer(
+            f"💰 Заявка #{t.id}\nПользователь: {t.user_id}\nСумма: {t.amount} USDT\nTXID: {t.transaction_hash}",
+            reply_markup=kb
+        )
 
 @router.callback_query(F.data.startswith("confirm_manual_"))
 async def confirm_manual_callback(callback: CallbackQuery):
-    try:
-        if not is_admin(callback.from_user.id):
-            await callback.answer("Нет доступа", show_alert=True)
-            return
-        manual_id = int(callback.data.split("_")[2])
-        await confirm_manual_topup(manual_id)
-        await callback.message.edit_text("✅ Пополнение подтверждено, баланс пользователя увеличен.")
-        await callback.answer()
-    except Exception as e:
-        logging.error(f"Error in confirm_manual_callback: {e}", exc_info=True)
-        await callback.answer(f"Ошибка: {e}", show_alert=True)
+    if not is_admin(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+    manual_id = int(callback.data.split("_")[2])
+    await confirm_manual_topup(manual_id)
+    await callback.message.edit_text("✅ Пополнение подтверждено, баланс пользователя увеличен.")
+    await callback.answer()
 
 @router.message(Command("withdraw_requests"))
 async def list_withdraw_requests(message: Message):
     if not is_admin(message.from_user.id):
         return
-    from database import get_pending_withdraw_requests
     reqs = await get_pending_withdraw_requests()
     if not reqs:
         await message.answer("Нет заявок на вывод.")
@@ -104,3 +96,13 @@ async def list_withdraw_requests(message: Message):
             f"📤 Заявка #{r.id}\nПартнёр ID: {r.partner_id}\nСумма: {r.amount} USDT\nАдрес: {r.wallet_address}",
             reply_markup=kb
         )
+
+@router.callback_query(F.data.startswith("approve_withdraw_"))
+async def approve_withdraw_callback(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+    req_id = int(callback.data.split("_")[2])
+    await approve_withdraw_request(req_id)
+    await callback.message.edit_text("✅ Заявка на вывод одобрена.")
+    await callback.answer()
