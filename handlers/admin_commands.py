@@ -66,3 +66,25 @@ async def admin_withdraw_requests_callback(callback: CallbackQuery):
     from handlers.admin_partners import list_withdraw_requests
     await list_withdraw_requests(callback.message)
     await callback.answer()
+
+@router.message(Command("edit_balance"))
+async def edit_balance(message: Message):
+    if not is_admin(message.from_user.id):
+        return
+    parts = message.text.split()
+    if len(parts) != 3:
+        await message.answer("Использование: /edit_balance <user_id> <сумма>")
+        return
+    _, user_id_str, amount_str = parts
+    try:
+        user_id = int(user_id_str)
+        amount = float(amount_str)
+        from database import get_user, update_user_balance
+        user = await get_user(user_id)
+        if not user:
+            await message.answer("Пользователь не найден.")
+            return
+        await update_user_balance(user_id, amount)
+        await message.answer(f"✅ Баланс пользователя {user_id} изменён на {amount} USDT")
+    except Exception as e:
+        await message.answer(f"Ошибка: {e}")
